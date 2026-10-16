@@ -5,7 +5,7 @@ import { RouterOutlet } from '@angular/router';
   selector: 'app-root',
   imports: [RouterOutlet],
   template: '<router-outlet />',
-  style: './app.scss'
+  styleUrl: './app.scss'
 })
 export class App {
   protected readonly title = signal('s2id-erp-contingencia');
