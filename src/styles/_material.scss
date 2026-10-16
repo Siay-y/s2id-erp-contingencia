@@ -1,0 +1,152 @@
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$green-palette,
+        theme-type: color-scheme,
+      ),
+      typography: (
+        plain-family: (
+          Inter,
+          Roboto,
+          system-ui,
+          sans-serif,
+        ),
+        brand-family: (
+          Roboto,
+          Inter,
+          system-ui,
+          sans-serif,
+        ),
+        bold-weight: 600,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+
+  @include mat.theme-overrides(
+    (
+      primary: var(--color-primary),
+      on-primary: var(--color-on-primary),
+      primary-container: var(--color-primary-soft),
+      on-primary-container: var(--color-primary-strong),
+      error: var(--color-danger),
+      on-error: var(--color-on-danger),
+      background: var(--color-background),
+      surface: var(--color-surface),
+      on-surface: var(--color-text),
+      on-surface-variant: var(--color-text-secondary),
+      surface-container-lowest: var(--color-surface),
+      surface-container-low: var(--color-surface),
+      surface-container: var(--color-surface-variant),
+      surface-container-high: var(--color-surface-raised),
+      surface-container-highest: var(--color-surface-variant),
+      outline: var(--color-outline-strong),
+      outline-variant: var(--color-outline),
+    )
+  );
+
+  @include mat.card-overrides(
+    (
+      elevated-container-shape: var(--radius-lg),
+      elevated-container-color: var(--color-surface),
+      elevated-container-elevation: var(--shadow-1),
+      outlined-container-shape: var(--radius-lg),
+      outlined-container-color: var(--color-surface),
+      outlined-outline-color: var(--color-outline),
+      filled-container-shape: var(--radius-lg),
+      filled-container-color: var(--color-surface-variant),
+    )
+  );
+
+  @include mat.button-overrides(
+    (
+      filled-container-shape: var(--radius-full),
+      outlined-container-shape: var(--radius-full),
+      text-container-shape: var(--radius-full),
+      tonal-container-shape: var(--radius-full),
+      protected-container-shape: var(--radius-full),
+      outlined-outline-color: var(--color-outline-strong),
+    )
+  );
+
+  @include mat.progress-bar-overrides(
+    (
+      track-shape: var(--radius-full),
+      track-color: var(--color-surface-variant),
+    )
+  );
+
+  @include mat.dialog-overrides(
+    (
+      container-shape: var(--radius-xl),
+      container-color: var(--color-surface),
+    )
+  );
+
+  @include mat.snack-bar-overrides(
+    (
+      container-shape: var(--radius-md),
+    )
+  );
+
+  @include mat.form-field-overrides(
+    (
+      outlined-container-shape: var(--radius-md),
+    )
+  );
+
+  @include mat.chips-overrides(
+    (
+      container-shape-radius: var(--radius-full),
+    )
+  );
+
+  @include mat.tooltip-overrides(
+    (
+      container-shape: var(--radius-sm),
+    )
+  );
+}
+
+.mat-mdc-card.card-hover {
+  transition:
+    transform var(--duration-medium) var(--ease-emphasized),
+    box-shadow var(--duration-medium) var(--ease-emphasized);
+}
+
+.mat-mdc-progress-bar {
+  border-radius: var(--radius-full);
+  overflow: hidden;
+
+  .mdc-linear-progress__bar,
+  .mdc-linear-progress__primary-bar {
+    transition: transform var(--duration-progress) var(--ease-emphasized) !important;
+  }
+}
+
+.mat-mdc-progress-bar[data-tone] {
+  --mat-progress-bar-active-indicator-color: var(--tone);
+  --mat-progress-bar-track-color: var(--tone-soft);
+}
+
+.mat-mdc-button-base {
+  min-height: var(--touch-target);
+}
+
+.mat-mdc-dialog-panel {
+  max-width: calc(100vw - var(--space-8)) !important;
+
+  @media (max-width: 599.98px) {
+    max-height: calc(100dvh - var(--space-8));
+  }
+}
+
+.mat-mdc-snack-bar-container {
+  margin-bottom: calc(var(--space-4) + env(safe-area-inset-bottom)) !important;
+}

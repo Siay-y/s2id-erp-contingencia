@@ -1,11 +1,37 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>S2idErpContingencia</title>
+  <title>S2iD Contingência Pro</title>
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Gestão operacional de planos de contingência, abrigos temporários, frota de resgate e IA prescritiva para alocação logística. Offline first, sem servidor.">
+  <meta name="author" content="Luiz Henrique Porfírio Santos">
+  <meta name="theme-color" content="#f8f9fa">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <script>
+    try {
+      var raw = localStorage.getItem('s2id_pro_theme');
+      var choice = raw ? JSON.parse(raw) : 'system';
+      var dark = choice === 'dark'
+        || (choice !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      if (dark) {
+        document.querySelector('meta[name="theme-color"]').content = '#131314';
+      }
+    } catch (e) {}
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=block"
+    rel="stylesheet">
 </head>
 <body>
   <app-root></app-root>
