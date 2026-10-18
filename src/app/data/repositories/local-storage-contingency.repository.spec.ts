@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { DomainError } from '../../domain/errors/domain.error';
 import { ContingencyRepository } from '../../domain/repositories/contingency.repository';
 import { provideContingencyData } from '../provide-contingency-data';
+import { SEED_VERSION, createSeedFleet, createSeedShelters } from '../seed/contingency.seed';
 import { STORAGE_KEYS } from '../storage/storage-keys';
 
 function createRepository(): ContingencyRepository {
@@ -18,8 +19,8 @@ describe('LocalStorageContingencyRepository', () => {
   it('popula o localStorage com o seed no primeiro acesso', () => {
     const repository = createRepository();
 
-    expect(repository.getShelters()).toHaveLength(4);
-    expect(repository.getFleet()).toHaveLength(4);
+    expect(repository.getShelters()).toHaveLength(createSeedShelters(new Date()).length);
+    expect(repository.getFleet()).toHaveLength(createSeedFleet().length);
     expect(repository.isOfflineMode()).toBe(false);
     for (const key of [
       STORAGE_KEYS.SHELTERS,
@@ -27,6 +28,7 @@ describe('LocalStorageContingencyRepository', () => {
       STORAGE_KEYS.ORDERS,
       STORAGE_KEYS.OFFLINE_MODE,
       STORAGE_KEYS.SIMULATION,
+      STORAGE_KEYS.SEED_VERSION,
     ]) {
       expect(localStorage.getItem(key)).not.toBeNull();
     }
@@ -48,11 +50,20 @@ describe('LocalStorageContingencyRepository', () => {
     expect(second.getShelterById('abrigo-jaboatao-pe')?.ocupacaoAtual).toBe(100);
   });
 
+  it('troca os dados de um seed antigo pelo seed atual', () => {
+    localStorage.setItem(STORAGE_KEYS.SHELTERS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.SEED_VERSION, JSON.stringify(SEED_VERSION - 1));
+    const repository = createRepository();
+
+    expect(repository.getShelters()).toHaveLength(createSeedShelters(new Date()).length);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.SEED_VERSION)!)).toBe(SEED_VERSION);
+  });
+
   it('volta ao seed quando o JSON gravado está corrompido', () => {
     localStorage.setItem(STORAGE_KEYS.SHELTERS, '{quebrado');
     const repository = createRepository();
 
-    expect(repository.getShelters()).toHaveLength(4);
+    expect(repository.getShelters()).toHaveLength(createSeedShelters(new Date()).length);
   });
 
   it('o check-in soma pessoas e grupos e reavalia o risco', () => {
@@ -86,27 +97,59 @@ describe('LocalStorageContingencyRepository', () => {
     ).toThrow(DomainError);
   });
 
-  it('o despacho grava a ordem, abastece o abrigo e coloca o veículo em missão', () => {
-    const repository = createRepository();
-    const before = repository.getShelterById('abrigo-mucum-rs')!;
-
-    const order = repository.registerDispatchOrder({
+  function dispatchToMucum(repository: ContingencyRepository) {
+    return repository.registerDispatchOrder({
       abrigoId: 'abrigo-mucum-rs',
       veiculoPrefixo: 'ARCANJO-03',
       itensDespachados: { aguaLitros: 800, refeicoes: 200, kitsMedicos: 10 },
       tempoDecisaoMinutos: 3,
       origem: 'IA_PRESCRITIVA',
     });
+  }
+
+  it('o despacho grava a ordem em trânsito e coloca o veículo em missão, sem mexer no estoque', () => {
+    const repository = createRepository();
+    const before = repository.getShelterById('abrigo-mucum-rs')!;
+
+    const order = dispatchToMucum(repository);
 
     const after = repository.getShelterById('abrigo-mucum-rs')!;
     const vehicle = repository.getFleet().find((item) => item.prefixo === 'ARCANJO-03')!;
 
     expect(order.protocoloS2id).toMatch(/^S2ID-PC-RS-\d{4}-000003$/);
     expect(order.sincronizadoNuvem).toBe(true);
+    expect(order.entregueEm).toBeNull();
     expect(repository.getDispatchOrders()[0].id).toBe(order.id);
+    expect(after.estoque).toEqual(before.estoque);
+    expect(vehicle.status).toBe('EM MISSÃO');
+  });
+
+  it('confirmar a entrega abastece o abrigo e devolve o veículo no município do abrigo', () => {
+    const repository = createRepository();
+    const before = repository.getShelterById('abrigo-mucum-rs')!;
+    const order = dispatchToMucum(repository);
+
+    const delivered = repository.confirmDelivery(order.id);
+
+    const after = repository.getShelterById('abrigo-mucum-rs')!;
+    const vehicle = repository.getFleet().find((item) => item.prefixo === 'ARCANJO-03')!;
+
+    expect(delivered.entregueEm).not.toBeNull();
+    expect(repository.getDispatchOrders()[0].entregueEm).toBe(delivered.entregueEm);
     expect(after.estoque.aguaLitros).toBe(before.estoque.aguaLitros + 800);
     expect(after.autonomiaHoras.agua).toBeGreaterThan(before.autonomiaHoras.agua);
-    expect(vehicle.status).toBe('EM MISSÃO');
+    expect(vehicle.status).toBe('DISPONÍVEL');
+    expect(vehicle.localizacaoAtual).toBe('Muçum/RS');
+  });
+
+  it('a mesma entrega não é confirmada duas vezes', () => {
+    const repository = createRepository();
+    const order = dispatchToMucum(repository);
+    repository.confirmDelivery(order.id);
+    const stock = repository.getShelterById('abrigo-mucum-rs')!.estoque;
+
+    expect(() => repository.confirmDelivery(order.id)).toThrow(DomainError);
+    expect(repository.getShelterById('abrigo-mucum-rs')!.estoque).toEqual(stock);
   });
 
   it('não grava nada quando o veículo está indisponível', () => {

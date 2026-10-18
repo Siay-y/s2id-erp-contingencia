@@ -1,0 +1,92 @@
+@for (modal of stack(); track modal.id) {
+  @let config = modal.config;
+  @let tone = tones[config.variant];
+
+  <div class="layer" animate.enter="layer--enter" animate.leave="layer--leave">
+    <div class="backdrop" aria-hidden="true" (click)="dismiss()"></div>
+
+    <section
+      #dialog
+      class="modal"
+      tabindex="-1"
+      aria-modal="true"
+      [attr.role]="
+        config.variant === 'danger' || config.variant === 'warning' ? 'alertdialog' : 'dialog'
+      "
+      [attr.data-size]="config.size"
+      [attr.data-tone]="tone"
+      [attr.aria-labelledby]="'modal-title-' + modal.id"
+      [attr.aria-describedby]="config.message ? 'modal-message-' + modal.id : null"
+    >
+      <header class="modal__header">
+        <span class="modal__icon" [attr.data-tone]="tone" aria-hidden="true">
+          <mat-icon>{{ config.icon }}</mat-icon>
+        </span>
+        @if (config.dismissible) {
+          <button matIconButton type="button" aria-label="Fechar" (click)="dismiss()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </header>
+
+      <div class="modal__body">
+        <div class="modal__intro">
+          @if (config.eyebrow) {
+            <p class="eyebrow">{{ config.eyebrow }}</p>
+          }
+          <h2 [id]="'modal-title-' + modal.id">{{ config.title }}</h2>
+          @if (config.message) {
+            <p class="modal__message" [id]="'modal-message-' + modal.id">{{ config.message }}</p>
+          }
+        </div>
+
+        @for (group of config.details ?? []; track group.title) {
+          <section class="modal__group">
+            <h3 class="modal__group-title">{{ group.title }}</h3>
+            <dl class="modal__rows">
+              @for (item of group.items; track item.label) {
+                <div class="modal__row" [class.modal__row--emphasis]="item.emphasis">
+                  <dt>{{ item.label }}</dt>
+                  <dd class="tabular">{{ item.value }}</dd>
+                </div>
+              }
+            </dl>
+          </section>
+        }
+
+        @if (config.bullets?.length) {
+          <section class="modal__group">
+            @if (config.bulletsTitle) {
+              <h3 class="modal__group-title">{{ config.bulletsTitle }}</h3>
+            }
+            <ul class="modal__notes">
+              @for (bullet of config.bullets; track $index) {
+                <li>{{ bullet }}</li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+
+      <footer class="modal__actions">
+        @if (pendingCount() > 0) {
+          <span class="modal__queue text-xs text-tertiary">+{{ pendingCount() }} na fila</span>
+        }
+        @for (action of config.actions; track action.id) {
+          <button
+            type="button"
+            [matButton]="action.appearance ?? 'text'"
+            [class.modal__action--destructive]="action.destructive"
+            [attr.data-autofocus]="action.autofocus ? '' : null"
+            (click)="choose(action.id)"
+          >
+            @if (action.icon) {
+              <mat-icon>{{ action.icon }}</mat-icon>
+            }
+            {{ action.label }}
+          </button>
+        }
+      </footer>
+    </section>
+  </div>
+}

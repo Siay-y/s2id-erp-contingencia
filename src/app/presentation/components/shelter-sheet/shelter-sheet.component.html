@@ -1,0 +1,134 @@
+@let s = shelter();
+
+<div class="backdrop" aria-hidden="true" (click)="close.emit()"></div>
+
+<aside
+  #panel
+  class="sheet"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="sheet-title"
+  [attr.data-tone]="tone()"
+>
+  <header class="sheet__top">
+    <p class="sheet__status">
+      <span class="dot" [class.dot--live]="tone() === 'critical'"></span>
+      {{ statusLabel() }}
+    </p>
+    <button #closeButton matIconButton type="button" aria-label="Fechar" (click)="close.emit()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <div class="sheet__body">
+    <div class="sheet__intro">
+      <h2 id="sheet-title">{{ s.nome }}</h2>
+      <p class="text-sm text-tertiary">{{ place() }}</p>
+    </div>
+
+    <div class="sheet__risk">
+      <span class="sheet__risk-value tabular">{{ s.riscoColapsoIA }}</span>
+      <span class="sheet__risk-text">
+        <span>risco de colapso</span>
+        <span class="text-tertiary">atualizado {{ updatedAt() }}</span>
+      </span>
+    </div>
+
+    <section class="block" aria-labelledby="supplies-title">
+      <div class="block__header">
+        <h3 id="supplies-title">Suprimentos</h3>
+        <span class="text-xs text-tertiary">meta de {{ targetHours }} h</span>
+      </div>
+      <p class="block__lead">{{ shortage() }}</p>
+      <ul class="metrics">
+        @for (metric of supplies(); track metric.id) {
+          <li class="metric">
+            <span class="metric__row">
+              <span>{{ metric.label }}</span>
+              <span class="metric__value tabular" [attr.data-tone]="metric.tone">{{
+                metric.value
+              }}</span>
+            </span>
+            <span class="bar" [attr.data-tone]="metric.tone">
+              <span class="bar__fill" [style.width.%]="metric.percent"></span>
+            </span>
+            <span class="text-xs text-tertiary">{{ metric.caption }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="block" aria-labelledby="people-title">
+      <div class="block__header">
+        <h3 id="people-title">Pessoas</h3>
+      </div>
+      @let o = occupancy();
+      <div class="metric">
+        <span class="metric__row">
+          <span>{{ o.label }}</span>
+          <span class="metric__value tabular" [attr.data-tone]="o.tone">{{ o.value }}</span>
+        </span>
+        <span class="bar" [attr.data-tone]="o.tone">
+          <span class="bar__fill" [style.width.%]="o.percent"></span>
+        </span>
+        <span class="text-xs text-tertiary">{{ o.caption }}</span>
+      </div>
+      <dl class="census">
+        @for (group of census(); track group.label) {
+          <div>
+            <dt>{{ group.label }}</dt>
+            <dd class="tabular">{{ group.value }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <details class="block why">
+      <summary>
+        <h3>Por que este risco</h3>
+        <mat-icon>expand_more</mat-icon>
+      </summary>
+      <ul class="metrics why__list">
+        @for (factor of factors(); track factor.id) {
+          <li class="metric">
+            <span class="metric__row">
+              <span>{{ factor.label }}</span>
+              <span class="metric__value tabular">{{ factor.value }}</span>
+            </span>
+            <span class="bar" data-tone="neutral">
+              <span class="bar__fill" [style.width.%]="factor.percent"></span>
+            </span>
+            <span class="text-xs text-tertiary">{{ factor.caption }}</span>
+          </li>
+        }
+      </ul>
+    </details>
+  </div>
+
+  <footer class="sheet__footer">
+    @if (prescription(); as p) {
+      <p class="sheet__recommendation text-sm">{{ recommendation() }}</p>
+      @if (p.necessitaEnvio) {
+        <button
+          matButton="filled"
+          type="button"
+          class="sheet__primary"
+          [disabled]="busy()"
+          (click)="executePrescription.emit()"
+        >
+          {{ p.veiculo ? 'Revisar e despachar' : 'Ver prescrição' }}
+        </button>
+      }
+    }
+    <div class="sheet__quick">
+      <button matButton="outlined" type="button" [disabled]="busy()" (click)="checkIn.emit()">
+        <mat-icon>person_add</mat-icon>
+        Check-in de {{ checkInPeople() }}
+      </button>
+      <button matButton="outlined" type="button" [disabled]="busy()" (click)="consumeStock.emit()">
+        <mat-icon>schedule</mat-icon>
+        Avançar {{ consumptionHours() }} h
+      </button>
+    </div>
+  </footer>
+</aside>

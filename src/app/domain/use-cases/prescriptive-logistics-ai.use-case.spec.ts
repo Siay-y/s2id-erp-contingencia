@@ -134,6 +134,45 @@ describe('PrescriptiveLogisticsAiUseCase', () => {
     }
   });
 
+  it('a carga em trânsito é descontada da prescrição', () => {
+    const assessed = ai.assess(createSeedShelters(NOW)[0]);
+    const full = ai.prescribe(assessed, createSeedFleet());
+    const half = { ...full.itens, aguaLitros: full.itens.aguaLitros / 2 };
+
+    const partial = ai.prescribe(assessed, createSeedFleet(), half);
+    const covered = ai.prescribe(assessed, createSeedFleet(), full.itens);
+
+    expect(partial.itens.aguaLitros).toBe(full.itens.aguaLitros / 2);
+    expect(partial.emTransito).toEqual(half);
+    expect(covered.necessitaEnvio).toBe(false);
+    expect(covered.justificativas[0]).toContain('carga a caminho');
+  });
+
+  it('execute não prescreve de novo o que as ordens em trânsito já levam', () => {
+    const shelters = createSeedShelters(NOW);
+    const first = ai.execute(shelters, createSeedFleet())[0];
+    const order = {
+      id: 'o',
+      protocoloS2id: 'S2ID-PC-RS-2026-000009',
+      dataHora: NOW.toISOString(),
+      abrigoId: first.abrigoId,
+      abrigoNome: first.abrigoNome,
+      veiculoPrefixo: 'ARCANJO-03',
+      itensDespachados: first.itens,
+      tempoDecisaoMinutos: 2,
+      origem: 'IA_PRESCRITIVA' as const,
+      sincronizadoNuvem: true,
+      entregueEm: null,
+    };
+
+    const again = ai
+      .execute(shelters, createSeedFleet(), [order])
+      .find((p) => p.abrigoId === first.abrigoId);
+
+    expect(again?.necessitaEnvio).toBe(false);
+    expect(again?.veiculo).toBeNull();
+  });
+
   it('abrigo isolado nunca recebe veículo terrestre', () => {
     const assessed = ai.assess(shelter({ acessoViario: 'ISOLADO' }));
     const fleet = [

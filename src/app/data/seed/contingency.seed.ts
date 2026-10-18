@@ -9,8 +9,9 @@ function hoursAgo(now: Date, hours: number): string {
 }
 
 /**
- * Quatro abrigos inspirados em desastres reais recentes, calibrados para que
- * cada um abra em um status diferente e a tela mostre toda a escala de risco.
+ * Oito abrigos inspirados em desastres reais recentes, de quatro regiões,
+ * calibrados para abrir com toda a escala de risco: um em colapso, dois em
+ * sobrecarga, dois em atenção e três estáveis. Muçum segue como prioridade.
  */
 export function createSeedShelters(now: Date): ShelterOperationalData[] {
   return [
@@ -65,6 +66,58 @@ export function createSeedShelters(now: Date): ShelterOperationalData[] {
       gruposVulneraveis: { idosos: 74, criancas: 118, pcd: 21, pets: 63 },
       estoque: { aguaLitros: 9800, refeicoesUnidades: 2600, kitsMedicos: 45 },
       atualizadoEm: hoursAgo(now, 1),
+    },
+    {
+      id: 'abrigo-eldorado-rs',
+      nome: 'Ginásio Poliesportivo de Eldorado do Sul',
+      municipio: 'Eldorado do Sul',
+      uf: 'RS',
+      baciaHidrografica: 'Bacia do Rio Jacuí',
+      acessoViario: 'RESTRITO',
+      capacidadeTotal: 450,
+      ocupacaoAtual: 431,
+      gruposVulneraveis: { idosos: 61, criancas: 104, pcd: 19, pets: 88 },
+      estoque: { aguaLitros: 6800, refeicoesUnidades: 2100, kitsMedicos: 30 },
+      atualizadoEm: hoursAgo(now, 2),
+    },
+    {
+      id: 'abrigo-sao-sebastiao-sp',
+      nome: 'Escola Municipal da Barra do Sahy',
+      municipio: 'São Sebastião',
+      uf: 'SP',
+      baciaHidrografica: 'Bacia do Litoral Norte',
+      acessoViario: 'RESTRITO',
+      capacidadeTotal: 160,
+      ocupacaoAtual: 118,
+      gruposVulneraveis: { idosos: 17, criancas: 36, pcd: 6, pets: 9 },
+      estoque: { aguaLitros: 3800, refeicoesUnidades: 1000, kitsMedicos: 18 },
+      atualizadoEm: hoursAgo(now, 4),
+    },
+    {
+      id: 'abrigo-rio-branco-ac',
+      nome: 'Parque de Exposições de Rio Branco',
+      municipio: 'Rio Branco',
+      uf: 'AC',
+      baciaHidrografica: 'Bacia do Rio Acre',
+      acessoViario: 'LIVRE',
+      capacidadeTotal: 800,
+      ocupacaoAtual: 455,
+      gruposVulneraveis: { idosos: 52, criancas: 141, pcd: 14, pets: 70 },
+      estoque: { aguaLitros: 30000, refeicoesUnidades: 7000, kitsMedicos: 120 },
+      atualizadoEm: hoursAgo(now, 3),
+    },
+    {
+      id: 'abrigo-itabuna-ba',
+      nome: 'Ginásio Municipal de Itabuna',
+      municipio: 'Itabuna',
+      uf: 'BA',
+      baciaHidrografica: 'Bacia do Rio Cachoeira',
+      acessoViario: 'LIVRE',
+      capacidadeTotal: 240,
+      ocupacaoAtual: 74,
+      gruposVulneraveis: { idosos: 9, criancas: 18, pcd: 3, pets: 5 },
+      estoque: { aguaLitros: 6000, refeicoesUnidades: 1200, kitsMedicos: 40 },
+      atualizadoEm: hoursAgo(now, 6),
     },
   ];
 }
@@ -128,6 +181,7 @@ export function createSeedOrders(now: Date): DispatchOrder[] {
       tempoDecisaoMinutos: 37,
       origem: 'MANUAL_OPERADOR',
       sincronizadoNuvem: false,
+      entregueEm: hoursAgo(now, 3),
     },
     {
       id: 'ordem-seed-0001',
@@ -140,8 +194,15 @@ export function createSeedOrders(now: Date): DispatchOrder[] {
       tempoDecisaoMinutos: 4,
       origem: 'IA_PRESCRITIVA',
       sincronizadoNuvem: true,
+      entregueEm: hoursAgo(now, 22),
     },
   ];
 }
 
 export const SEED_OFFLINE_MODE = false;
+
+/**
+ * Suba este número sempre que o seed mudar. Navegadores com dados de uma
+ * versão anterior recebem o seed novo na próxima abertura.
+ */
+export const SEED_VERSION = 3;

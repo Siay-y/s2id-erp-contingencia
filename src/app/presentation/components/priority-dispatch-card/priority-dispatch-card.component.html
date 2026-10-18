@@ -1,0 +1,35 @@
+@let s = shelter();
+
+<article class="priority" [attr.data-tone]="tone()" aria-labelledby="priority-title">
+  <div class="priority__main">
+    <p class="priority__eyebrow">
+      <span class="dot" [class.dot--live]="tone() === 'critical'"></span>
+      Prioridade agora · {{ statusLabel() }}
+    </p>
+
+    <h2 id="priority-title">{{ s.nome }}</h2>
+    <p class="priority__context text-sm">{{ context() }}</p>
+
+    <p class="priority__lead">
+      <strong>{{ problem() }}</strong>
+      {{ recommendation() }}
+    </p>
+
+    <div class="priority__actions">
+      <button matButton="filled" type="button" [disabled]="busy()" (click)="dispatch.emit()">
+        {{ prescription().veiculo ? 'Revisar e despachar' : 'Ver prescrição' }}
+        <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+      </button>
+      <button matButton type="button" (click)="openShelter.emit()">Ver abrigo</button>
+    </div>
+  </div>
+
+  <div
+    class="priority__risk"
+    role="img"
+    [attr.aria-label]="'Risco de colapso: ' + s.riscoColapsoIA + '%'"
+  >
+    <span class="priority__risk-value tabular">{{ s.riscoColapsoIA }}</span>
+    <span class="priority__risk-label">risco de colapso</span>
+  </div>
+</article>

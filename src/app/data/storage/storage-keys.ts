@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   ORDERS: 's2id_pro_orders',
   OFFLINE_MODE: 's2id_pro_offline_mode',
   SIMULATION: 's2id_pro_simulation',
+  SEED_VERSION: 's2id_pro_seed_version',
   THEME: 's2id_pro_theme',
 } as const;
 
@@ -16,4 +17,5 @@ export const CONTINGENCY_KEYS: readonly StorageKey[] = [
   STORAGE_KEYS.ORDERS,
   STORAGE_KEYS.OFFLINE_MODE,
   STORAGE_KEYS.SIMULATION,
+  STORAGE_KEYS.SEED_VERSION,
 ];

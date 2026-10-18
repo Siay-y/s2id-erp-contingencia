@@ -1,0 +1,39 @@
+<section class="overview" aria-labelledby="overview-title">
+  <p class="eyebrow fade-in-up">{{ today }} · PN-PDC 2025-2035, Meta 9.2.4</p>
+
+  <h1 id="overview-title" class="headline fade-in-up" style="--delay: 1">
+    <span class="headline__lead tabular">{{ headline() }}</span>
+    <span class="headline__status">
+      @for (phrase of statusPhrases(); track phrase.text; let i = $index; let count = $count) {
+        <span class="headline__phrase" [attr.data-tone]="phrase.tone">{{ phrase.text }}</span>
+        <span>{{ separatorAfter(i, count) }}</span>
+      } @empty {
+        Nenhum abrigo em situação crítica.
+      }
+    </span>
+  </h1>
+
+  <dl class="stats">
+    @for (stat of stats(); track stat.id; let i = $index) {
+      <div class="stat fade-in-up" [style.--delay]="i + 2">
+        <dt class="stat__label">{{ stat.label }}</dt>
+        <dd class="stat__value tabular" [attr.data-tone]="stat.valueTone">
+          {{ stat.value }}
+          @if (stat.unit) {
+            <span class="stat__unit">{{ stat.unit }}</span>
+          }
+        </dd>
+        @if (stat.opensDetail) {
+          <dd class="stat__caption">
+            <button type="button" class="stat__link" (click)="showFleet.emit()">
+              <span class="truncate">{{ stat.caption }}</span>
+              <mat-icon>arrow_downward</mat-icon>
+            </button>
+          </dd>
+        } @else {
+          <dd class="stat__caption" [attr.data-tone]="stat.captionTone">{{ stat.caption }}</dd>
+        }
+      </div>
+    }
+  </dl>
+</section>

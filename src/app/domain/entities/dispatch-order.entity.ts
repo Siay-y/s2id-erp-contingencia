@@ -22,6 +22,11 @@ export interface DispatchOrder {
   origem: DispatchOrigin;
   /** `false` enquanto a ordem espera na fila offline para subir ao S2iD. */
   sincronizadoNuvem: boolean;
+  /**
+   * `null` enquanto a carga está em trânsito. O estoque do abrigo só recebe
+   * os itens quando a equipe confirma a entrega.
+   */
+  entregueEm: string | null;
 }
 
 /**
@@ -79,6 +84,35 @@ export function validateDispatchDraft(draft: DispatchOrderDraft): void {
   if (!DISPATCH_ORIGINS.includes(draft.origem)) {
     throw new DomainError('INVALID_DISPATCH', 'Origem da ordem de despacho desconhecida.');
   }
+}
+
+/** Ordens gravadas antes da confirmação de entrega existir não têm o campo e contam como entregues. */
+export function isInTransit(order: DispatchOrder): boolean {
+  return order.entregueEm === null;
+}
+
+export function confirmOrderDelivery(order: DispatchOrder, at: string): DispatchOrder {
+  if (!isInTransit(order)) {
+    throw new DomainError(
+      'ORDER_ALREADY_DELIVERED',
+      `A entrega da ordem ${order.protocoloS2id} já foi confirmada.`,
+    );
+  }
+  return { ...order, entregueEm: at };
+}
+
+/** Soma do que está a caminho do abrigo e ainda não entrou no estoque. */
+export function loadInTransit(orders: readonly DispatchOrder[], shelterId: string): SupplyLoad {
+  return orders
+    .filter((order) => order.abrigoId === shelterId && isInTransit(order))
+    .reduce<SupplyLoad>(
+      (total, order) => ({
+        aguaLitros: total.aguaLitros + order.itensDespachados.aguaLitros,
+        refeicoes: total.refeicoes + order.itensDespachados.refeicoes,
+        kitsMedicos: total.kitsMedicos + order.itensDespachados.kitsMedicos,
+      }),
+      { ...EMPTY_SUPPLY_LOAD },
+    );
 }
 
 /** Formato `S2ID-PC-UF-AAAA-NNNNNN`, com a sequência zerada à esquerda. */

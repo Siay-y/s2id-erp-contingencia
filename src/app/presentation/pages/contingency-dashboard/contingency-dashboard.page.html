@@ -1,0 +1,66 @@
+<app-erp-header
+  [offlineMode]="facade.isOfflineMode()"
+  [pendingSyncCount]="facade.pendingSyncCount()"
+  [busy]="facade.isBusy()"
+  (toggleOffline)="facade.toggleOfflineMode()"
+  (simulateCrisis)="facade.simulateMassInfluxCrisis()"
+  (resetData)="facade.resetAll()"
+/>
+
+<main class="page container">
+  <app-kpi-summary-cards [kpis]="facade.kpis()" (showFleet)="scrollToFleet()" />
+
+  @if (facade.priority(); as priority) {
+    <app-priority-dispatch-card
+      class="fade-in-up"
+      style="--delay: 4"
+      [shelter]="priority.shelter"
+      [prescription]="priority.prescription"
+      [busy]="facade.isBusy()"
+      (dispatch)="dispatch(priority.shelter.id)"
+      (openShelter)="openShelter(priority.shelter.id)"
+    />
+  } @else {
+    <p class="calm fade-in-up" style="--delay: 4">
+      <span class="dot" data-tone="positive"></span>
+      Nenhuma ação urgente. Os abrigos em risco têm suprimentos, em estoque ou a caminho, para as
+      próximas 72 h.
+    </p>
+  }
+
+  <app-shelter-management-panel
+    [shelters]="facade.shelters()"
+    [awaitingDelivery]="facade.sheltersAwaitingDelivery()"
+    [selectedId]="sheetOpen() ? (facade.selectedShelter()?.id ?? null) : null"
+    (selectShelter)="openShelter($event)"
+  />
+
+  <app-fleet-panel
+    #fleetPanel
+    class="fleet-anchor"
+    [fleet]="facade.fleet()"
+    [busy]="facade.isBusy()"
+    (confirmDelivery)="facade.confirmDelivery($event)"
+    (releaseVehicle)="facade.releaseVehicleFromMaintenance($event)"
+  />
+
+  <footer class="page__footer text-xs text-tertiary">
+    Dados guardados neste dispositivo. Meta 9.2.4 do Plano Nacional de Proteção e Defesa Civil.
+  </footer>
+</main>
+
+@if (sheetOpen() && facade.selectedShelter(); as shelter) {
+  <app-shelter-sheet
+    animate.leave="sheet-leave"
+    [shelter]="shelter"
+    [prescription]="facade.currentPrescription()"
+    [inTransit]="facade.selectedInTransit()"
+    [busy]="facade.isBusy()"
+    [checkInPeople]="checkInPeople"
+    [consumptionHours]="consumptionHours"
+    (close)="closeShelter()"
+    (checkIn)="checkIn(shelter.id)"
+    (consumeStock)="consumeStock(shelter.id)"
+    (executePrescription)="dispatch()"
+  />
+}

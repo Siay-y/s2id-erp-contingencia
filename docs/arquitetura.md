@@ -11,9 +11,13 @@ Como o projeto é organizado: camadas, pastas, persistência, modelo de dados e 
 ```
 s2id-erp-contingencia/
 ├── public/
-│   └── favicon.ico
+│   ├── favicon.svg                   Marca do app; inverte as cores com a aba em tema escuro
+│   ├── favicon.ico                   16, 32 e 48 px para navegadores antigos
+│   └── apple-touch-icon.png          180 px para a tela inicial do iPhone
 ├── src/
 │   ├── app/
+│   │   ├── core/
+│   │   │   └── ui/modal/                 Modal nativa: modelo, serviço (fila em signals) e host
 │   │   ├── domain/                       Regras de negócio, sem Angular e sem armazenamento
 │   │   │   ├── entities/                 Abrigo, veículo, ordem de despacho, estado da simulação
 │   │   │   │                             e as funções puras de cada um (check-in, abastecimento...)
@@ -26,9 +30,17 @@ s2id-erp-contingencia/
 │   │   │   ├── seed/                     Abrigos, frota e ordens iniciais
 │   │   │   ├── storage/                  JsonStorage e as chaves do localStorage
 │   │   │   └── provide-contingency-data.ts   Raiz de composição (liga contrato e implementação)
+│   │   ├── presentation/                 Tudo o que o operador vê
+│   │   │   ├── controllers/              ContingencyErpFacade e o cálculo dos KPIs da Meta 9.2.4
+│   │   │   ├── components/               erp-header, kpi-summary-cards, priority-dispatch-card,
+│   │   │   │                             shelter-management-panel e shelter-sheet
+│   │   │   ├── formatters/               Números em pt-BR e as frases da prescrição
+│   │   │   ├── mappers/                  Status, acesso e autonomia para tons do design system
+│   │   │   └── pages/                    contingency-dashboard, a única peça que injeta o facade
 │   │   ├── app.config.ts                 Providers, locale pt-BR e fonte dos ícones
-│   │   ├── app.routes.ts                 Rotas (preenchidas nas próximas etapas)
-│   │   └── app.ts                        Componente raiz
+│   │   ├── app.routes.ts                 Painel em `/`, carregado sob demanda; o resto redireciona
+│   │   ├── app.routes.server.ts          Renderização só no cliente
+│   │   └── app.ts                        Componente raiz: router outlet e o host da modal
 │   ├── styles/
 │   │   ├── _tokens.scss                  Paleta, raios, sombras, espaçamento, motion, fontes
 │   │   ├── _reset.scss                   Reset mínimo
@@ -58,7 +70,8 @@ o domínio não conhece ninguém.
 | --- | --- | --- |
 | `domain` | Apenas o próprio `domain` | Angular, `data`, componentes, `localStorage` |
 | `data` | `domain`, `@angular/core` | Componentes e telas |
-| Apresentação | `domain` (contrato, entidades, use case) | `data` diretamente |
+| `core/ui` | Angular e Material | `domain`, `data`, `presentation` |
+| `presentation` | `domain` (contrato, entidades, use case), `core/ui` | `data` diretamente |
 
 ### Inversão de dependência
 
@@ -81,20 +94,48 @@ Angular por `useFactory`. Isso mantém o domínio testável com `new`, sem
 | `ContingencyRepository` | Contrato de leitura, gravação, fila offline, simulação e reset |
 | `LocalStorageContingencyRepository` | Orquestra entidades e motor e grava cada coleção como uma unidade |
 | `JsonStorage` | JSON tipado sobre o `localStorage`, fallback em memória e evento entre abas |
+| `ContingencyErpFacade` | Estado da tela em signals, prescrição do abrigo em foco, KPIs e os fluxos com modal |
+| `ModalService` / `ModalComponent` | Fila de modais e o host que as desenha, prende o foco e trata ESC |
+| Página `contingency-dashboard` | Liga signals do facade a inputs e outputs dos componentes a métodos do facade; guarda só se a gaveta está aberta |
+| Componentes | Apresentação pura: `input()`, `output()` e `computed()`, sem injetar serviço de domínio |
+
+### Controller e componentes
+
+O padrão é MVC com o facade no papel de controller. Só a página injeta o
+`ContingencyErpFacade`; header, KPIs e painel recebem dados por `input()` e
+avisam intenções por `output()`. Com isso cada componente pode ser testado ou
+reaproveitado sem repositório, e trocar um fluxo (por exemplo, pedir uma
+segunda confirmação antes do reset) mexe só no facade.
+
+Erros de regra (`DomainError`) nunca chegam ao componente: o facade os captura
+e abre uma modal de erro com a mensagem do domínio. Qualquer outro erro sobe
+para o `ErrorHandler` do Angular, porque esconder um bug atrás de uma modal
+genérica atrasaria o diagnóstico.
+
+### Modal nativa
+
+`ModalService.open()` devolve uma `Promise` com o `id` da ação escolhida, ou
+`null` se a modal for dispensada; `confirm()` e `alert()` são atalhos sobre ela.
+As modais formam uma fila: uma modal aberta durante outra espera a vez em vez
+de sobrescrevê-la. O `ModalComponent` é montado uma única vez no `App`, anima
+entrada e saída com `animate.enter` e `animate.leave`, prende o Tab dentro do
+diálogo, devolve o foco a quem abriu e trava a rolagem do `body`.
 
 ### Reatividade
 
 O contrato é síncrono e não expõe Signals, para o domínio não depender do
 Angular. A ponte fica em `subscribe()`: o repositório avisa a cada gravação,
-inclusive as feitas em outra aba, e a fachada da apresentação (próxima etapa)
-relê os dados para dentro de um `signal()` e deriva o restante com `computed()`.
+inclusive as feitas em outra aba, e o `ContingencyErpFacade` relê as coleções
+para dentro de `signal()` e deriva o restante com `computed()`. Nenhum método do
+facade atualiza signal à mão depois de gravar: a notificação já faz isso.
 
 ### SSR
 
-O projeto mantém o SSR e a pré-renderização gerados pelo Angular CLI. No
-servidor não existe `localStorage`, então o `JsonStorage` trabalha em memória e
-o HTML pré-renderizado sai com o seed. No navegador, a hidratação assume e os
-dados reais do dispositivo passam a valer.
+O projeto mantém o servidor SSR gerado pelo Angular CLI, mas as rotas usam
+`RenderMode.Client`. Os dados vivem no `localStorage` do dispositivo: um HTML
+pré-renderizado no servidor mostraria o seed por um instante e a hidratação
+trocaria pelos dados reais, com números piscando na tela. Se algum código rodar
+no servidor, o `JsonStorage` trabalha em memória.
 
 ---
 
@@ -107,6 +148,7 @@ dados reais do dispositivo passam a valer.
 | `s2id_pro_orders` | Ordens de despacho, da mais recente para a mais antiga |
 | `s2id_pro_offline_mode` | `true` quando o modo offline está ativo |
 | `s2id_pro_simulation` | Quantos picos foram simulados e quando foi o último |
+| `s2id_pro_seed_version` | Versão do seed que gerou os dados gravados |
 | `s2id_pro_theme` | Tema escolhido: `system`, `light` ou `dark` (lido no `index.html`) |
 
 Regras:
@@ -118,7 +160,10 @@ Regras:
 - O seed de abrigos guarda apenas dados operacionais. Autonomia, risco e
   explicabilidade saem do motor no momento do seed, então mudar uma taxa de
   consumo muda o seed sem editar número nenhum à mão.
-- O reset restaura as cinco chaves do plano e preserva o tema.
+- Quando a versão gravada difere de `SEED_VERSION`, todas as chaves do plano
+  voltam ao seed atual na abertura. Toda mudança no seed sobe esse número,
+  senão quem já abriu o app continua vendo os dados antigos.
+- O reset restaura as seis chaves do plano e preserva o tema.
 
 ---
 
@@ -172,6 +217,7 @@ operador informa e o que o motor recebe.
 | `tempoDecisaoMinutos` | `number` | Do alerta à decisão; compara IA e operador |
 | `origem` | `'IA_PRESCRITIVA' \| 'MANUAL_OPERADOR'` | |
 | `sincronizadoNuvem` | `boolean` | `false` enquanto está na fila offline |
+| `entregueEm` | ISO 8601 ou `null` | `null` enquanto a carga está em trânsito |
 
 ### `SimulationState`
 

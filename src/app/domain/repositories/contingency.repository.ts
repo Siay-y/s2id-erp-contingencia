@@ -32,10 +32,17 @@ export abstract class ContingencyRepository {
   abstract getDispatchOrders(): DispatchOrder[];
 
   /**
-   * Registra a ordem como uma unidade: grava a ordem, entrega os suprimentos
-   * ao abrigo e coloca o veículo em missão. Se qualquer regra falhar, nada é gravado.
+   * Registra a ordem como uma unidade: grava a ordem em trânsito e coloca o
+   * veículo em missão. O estoque do abrigo não muda até a entrega ser
+   * confirmada. Se qualquer regra falhar, nada é gravado.
    */
   abstract registerDispatchOrder(draft: DispatchOrderDraft): DispatchOrder;
+
+  /**
+   * Fecha a ordem como uma unidade: marca a entrega, soma a carga ao estoque
+   * do abrigo e devolve o veículo à frota no município do abrigo.
+   */
+  abstract confirmDelivery(orderId: string): DispatchOrder;
 
   /** Ordens ainda não enviadas ao S2iD, da mais antiga para a mais recente. */
   abstract getSyncQueue(): DispatchOrder[];

@@ -17,19 +17,46 @@ e serve de prova de conceito para esse módulo.
 | Característica | Implementação |
 | --- | --- |
 | Persistência | `localStorage`, por meio de um `JsonStorage` tipado, com fallback em memória no SSR |
-| Dados iniciais | Seed automático com 4 abrigos e 4 veículos quando o armazenamento está vazio ou corrompido |
+| Dados iniciais | Seed automático com 8 abrigos de 7 estados e 4 veículos, reaplicado quando o armazenamento está vazio, corrompido ou com um seed antigo |
 | Arquitetura | Clean Architecture em três camadas: `domain`, `data` e apresentação |
 | Inversão de dependência | `ContingencyRepository` é uma classe abstrata usada como token de injeção |
+| Controller | `ContingencyErpFacade` concentra o estado da tela em signals; os componentes só recebem `input()` e emitem `output()` |
+| Modal | Sistema próprio, sem SweetAlert: fila em signals, variantes, foco preso, ESC e folha inferior no celular |
 | IA prescritiva | Use case determinístico, sem dependência de Angular, com pesos explicáveis que somam 100% |
 | Offline first | Ordens criadas sem conexão entram numa fila e sobem ao reconectar |
 | Estado | Signals do Angular (`signal`, `computed`, `input`, `output`, `inject`) |
 | Componentes | Standalone, sem NgModules |
-| Interface | Angular Material 3 com tema próprio no estilo Google Material |
-| Estilo | SCSS com tokens em variáveis CSS, tema claro e escuro |
-| Animação | Somente CSS: `fade-in-up`, `pulse-subtle`, `card-hover` e barras de progresso suaves |
-| Ícones | Material Symbols Rounded e Outlined |
-| Fontes | Inter para texto e Roboto para títulos (Google Fonts) |
+| Interface | Minimalista: base monocromática, cor só para colapso e alerta, Angular Material 3 nos controles |
+| Estilo | SCSS com tokens em variáveis CSS, tema claro e escuro, sem cards decorativos |
+| Animação | Somente CSS: entrada escalonada, gaveta e modal com `animate.enter` e `animate.leave`, ponto pulsante só no que está em colapso |
+| Ícones | Material Symbols Rounded, usados com parcimônia |
+| Fontes | Geist e Geist Mono (Google Fonts) |
 | Idioma | Português do Brasil (`LOCALE_ID` `pt-BR`) |
+
+### Telas
+
+A tela responde a uma pergunta: o que precisa de mim agora?
+
+1. **Painel operacional**, numa única rota, lido de cima para baixo:
+   - **Situação em uma frase**: "2.196 pessoas abrigadas em 8 abrigos. 1 em
+     colapso logístico, 2 em sobrecarga e 2 em atenção."
+   - **Quatro indicadores da Meta 9.2.4** em tipografia, sem caixas: menor
+     autonomia, tempo de decisão contra a meta de 14 min, frota pronta e
+     pessoas vulneráveis. A legenda da frota leva até a lista de veículos.
+   - **Prioridade agora**: o abrigo de maior risco que ainda precisa de envio e
+     a recomendação da IA numa frase, com uma única ação, revisar e despachar.
+   - **Abrigos**: lista em linhas, ordenada pelo risco, com ocupação, menor
+     autonomia e risco de cada um.
+   - **Frota**: cada veículo com situação, localização e carga. Quem pode
+     sair agora vem primeiro. Veículo em missão volta quando o operador
+     confirma a entrega; veículo em manutenção pode ser liberado.
+2. **Gaveta do abrigo**, aberta pela lista: suprimentos, pessoas, os pesos da IA
+   (recolhidos) e as ações. Na lateral no desktop e como folha inferior no
+   celular.
+3. **Modais**: manifesto logístico, resultado do despacho, confirmação do pico
+   simulado, confirmação do reset e erros de regra de negócio.
+4. **Topbar** discreta: estado da sincronização, simular pico e um menu com o
+   modo offline e a restauração dos dados.
 
 ---
 
@@ -51,6 +78,10 @@ e serve de prova de conceito para esse módulo.
 - **Prescrição logística automática.** Quantos litros de água, refeições e
   kits enviar para fechar 72 h de autonomia, o peso da carga, o veículo
   indicado e quantas viagens ele precisa fazer, com a justificativa em texto.
+  A carga que já está a caminho é descontada, para nada ser enviado duas vezes.
+- **Entrega confirmada pelo operador.** O despacho coloca a carga em trânsito;
+  o estoque do abrigo só sobe quando a equipe avisa que entregou e o operador
+  confirma na lista da frota. Nesse momento o veículo volta a ficar disponível.
 - **Escolha de veículo pelo acesso.** Abrigo isolado só recebe modal fluvial
   ou aéreo. Entre os possíveis, vence quem resolve em menos viagens, depois quem
   já está no município, depois o modal mais barato e, por fim, o menor veículo
@@ -66,6 +97,12 @@ e serve de prova de conceito para esse módulo.
 - **Simulador de pico de emergência.** Chegada em massa proporcional à
   capacidade, agravamento do acesso viário e 12 h de consumo sem reposição,
   para treinar a resposta e ver o motor reagir.
+- **Manifesto logístico antes do despacho.** A prescrição abre numa modal com
+  carga, transporte e as justificativas da IA; só a confirmação grava a ordem.
+  O tempo entre abrir o manifesto e confirmar vira o tempo de decisão da ordem.
+- **Ações rápidas no abrigo em foco**: check-in de uma família de quatro
+  pessoas (um idoso, duas crianças e um pet) e 6 h de consumo sem reposição,
+  para ver o risco reagir na hora.
 - **Restaurar dados padrão** com um clique, sem mexer no tema escolhido.
 - **Sincronização entre abas.** Duas abas abertas enxergam o mesmo estado.
 - **Responsivo** desde a base: grid fluido, alvos de toque de 44 px, áreas
@@ -81,12 +118,13 @@ e serve de prova de conceito para esse módulo.
 | Linguagem | TypeScript 6 com `strict` e `strictTemplates` |
 | Interface | Angular Material 3 e CDK |
 | Estilo | SCSS |
-| Build | `@angular/build:application`, com SSR e pré-renderização |
+| Build | `@angular/build:application`, com servidor SSR e rotas renderizadas no cliente |
 | Testes | Vitest com jsdom |
 | Formatação | Prettier |
 
 Não há backend de dados nem biblioteca de estado, de gráficos ou de animação.
-O bundle inicial fica em torno de 84 kB transferidos.
+O bundle inicial fica em torno de 120 kB transferidos; a tela do painel é carregada
+sob demanda, com mais cerca de 40 kB.
 
 ---
 

@@ -1,0 +1,67 @@
+<section class="fleet" aria-labelledby="fleet-title">
+  <header class="fleet__header">
+    <h2 id="fleet-title">Frota</h2>
+    <span class="text-sm text-tertiary">{{ summary() }}</span>
+  </header>
+
+  <div class="columns" aria-hidden="true">
+    <span>Veículo</span>
+    <span>Situação</span>
+    <span>Localização</span>
+    <span class="columns__end">Carga</span>
+    <span></span>
+  </div>
+
+  <ul class="rows">
+    @for (row of rows(); track row.id; let i = $index) {
+      <li class="row fade-in-up" [class.row--muted]="row.inMaintenance" [style.--delay]="i">
+        <span class="row__vehicle">
+          <mat-icon class="row__icon" [attr.aria-label]="row.mode">{{ row.icon }}</mat-icon>
+          <span class="row__title">
+            <span class="mono">{{ row.prefixo }}</span>
+            <span class="row__model text-xs truncate">{{ row.modelo }}</span>
+          </span>
+        </span>
+
+        <span class="row__status text-sm">
+          <span class="dot" [attr.data-tone]="row.statusTone"></span>
+          {{ row.statusLabel }}
+        </span>
+
+        <span class="row__location text-sm truncate">{{ row.location }}</span>
+
+        <span class="row__capacity text-sm tabular">{{ row.capacity }}</span>
+
+        <span class="row__action">
+          @if (row.inMission) {
+            <button
+              matButton="outlined"
+              type="button"
+              [disabled]="busy()"
+              [attr.aria-label]="'Confirmar entrega do ' + row.prefixo"
+              (click)="confirmDelivery.emit(row.id)"
+            >
+              Confirmar entrega
+            </button>
+          } @else if (row.inMaintenance) {
+            <button
+              matButton="outlined"
+              type="button"
+              [disabled]="busy()"
+              [attr.aria-label]="'Liberar ' + row.prefixo + ' da manutenção'"
+              (click)="releaseVehicle.emit(row.id)"
+            >
+              Liberar
+            </button>
+          }
+        </span>
+
+        <span class="row__mobile-meta text-xs">
+          {{ row.statusLabel }} · {{ row.location }} · {{ row.capacity }}
+        </span>
+      </li>
+    } @empty {
+      <li class="rows__empty text-sm text-tertiary">Nenhum veículo cadastrado.</li>
+    }
+  </ul>
+</section>

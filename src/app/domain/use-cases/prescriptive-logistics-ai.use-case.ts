@@ -1,4 +1,11 @@
-import { SupplyLoad, isEmptyLoad, loadWeightKg } from '../entities/dispatch-order.entity';
+import {
+  DispatchOrder,
+  EMPTY_SUPPLY_LOAD,
+  SupplyLoad,
+  isEmptyLoad,
+  loadInTransit,
+  loadWeightKg,
+} from '../entities/dispatch-order.entity';
 import { FleetVehicle, isAvailable } from '../entities/fleet-vehicle.entity';
 import {
   AiExplainability,
@@ -99,6 +106,8 @@ export interface LogisticsPrescription {
   status: ShelterStatus;
   necessitaEnvio: boolean;
   itens: SupplyLoad;
+  /** Carga já despachada que ainda não chegou; foi descontada de `itens`. */
+  emTransito: SupplyLoad;
   cargaTotalKg: number;
   /** `null` quando não há envio ou quando nenhum veículo disponível alcança o abrigo. */
   veiculo: FleetVehicle | null;
@@ -114,10 +123,14 @@ export interface LogisticsPrescription {
  * cada número pode ser auditado pelos pesos de explicabilidade.
  */
 export class PrescriptiveLogisticsAiUseCase {
-  /** Avalia todos os abrigos e prescreve em ordem de risco, sem prometer o mesmo veículo duas vezes. */
+  /**
+   * Avalia todos os abrigos e prescreve em ordem de risco, sem prometer o
+   * mesmo veículo duas vezes e descontando o que as ordens em trânsito já levam.
+   */
   execute(
     shelters: readonly ShelterOperationalData[],
     fleet: readonly FleetVehicle[],
+    orders: readonly DispatchOrder[] = [],
   ): LogisticsPrescription[] {
     const reserved = new Set<string>();
 
@@ -128,6 +141,7 @@ export class PrescriptiveLogisticsAiUseCase {
         const prescription = this.prescribe(
           shelter,
           fleet.filter((vehicle) => !reserved.has(vehicle.id)),
+          loadInTransit(orders, shelter.id),
         );
         if (prescription.veiculo) reserved.add(prescription.veiculo.id);
         return prescription;
@@ -185,18 +199,30 @@ export class PrescriptiveLogisticsAiUseCase {
     };
   }
 
-  /** Quanto enviar para fechar `AUTONOMY_TARGET_HOURS` em cada item, e com qual veículo. */
-  prescribe(shelter: Shelter, fleet: readonly FleetVehicle[]): LogisticsPrescription {
+  /**
+   * Quanto enviar para fechar `AUTONOMY_TARGET_HOURS` em cada item, e com qual
+   * veículo. A carga em trânsito conta como estoque futuro: sem isso, a IA
+   * mandaria de novo o que já está a caminho.
+   */
+  prescribe(
+    shelter: Shelter,
+    fleet: readonly FleetVehicle[],
+    emTransito: SupplyLoad = EMPTY_SUPPLY_LOAD,
+  ): LogisticsPrescription {
     const perHour = this.hourlyConsumption(shelter);
     const stock = shelter.estoque;
 
     const itens: SupplyLoad = {
       aguaLitros: ceilToMultiple(
-        deficit(perHour.aguaLitros, stock.aguaLitros),
+        deficit(perHour.aguaLitros, stock.aguaLitros + emTransito.aguaLitros),
         WATER_PACKAGE_LITERS,
       ),
-      refeicoes: ceilSafe(deficit(perHour.refeicoes, stock.refeicoesUnidades)),
-      kitsMedicos: ceilSafe(deficit(perHour.kitsMedicos, stock.kitsMedicos)),
+      refeicoes: ceilSafe(
+        deficit(perHour.refeicoes, stock.refeicoesUnidades + emTransito.refeicoes),
+      ),
+      kitsMedicos: ceilSafe(
+        deficit(perHour.kitsMedicos, stock.kitsMedicos + emTransito.kitsMedicos),
+      ),
     };
 
     const necessitaEnvio = !isEmptyLoad(itens);
@@ -211,6 +237,7 @@ export class PrescriptiveLogisticsAiUseCase {
       status: shelter.status,
       necessitaEnvio,
       itens,
+      emTransito: { ...emTransito },
       cargaTotalKg,
       veiculo,
       viagensNecessarias,
@@ -218,6 +245,7 @@ export class PrescriptiveLogisticsAiUseCase {
       justificativas: this.explain(
         shelter,
         necessitaEnvio,
+        emTransito,
         cargaTotalKg,
         veiculo,
         viagensNecessarias,
@@ -305,12 +333,21 @@ export class PrescriptiveLogisticsAiUseCase {
   private explain(
     shelter: Shelter,
     necessitaEnvio: boolean,
+    emTransito: SupplyLoad,
     cargaTotalKg: number,
     veiculo: FleetVehicle | null,
     viagens: number,
   ): string[] {
+    const hasTransit = !isEmptyLoad(emTransito);
+    const transitReason = `Já a caminho: ${numberFormat.format(loadWeightKg(emTransito))} kg em ordens aguardando confirmação de entrega.`;
+
     if (!necessitaEnvio) {
-      return [`O estoque cobre as próximas ${AUTONOMY_TARGET_HOURS} h. Nenhum envio necessário.`];
+      return hasTransit
+        ? [
+            `O estoque e a carga a caminho cobrem as próximas ${AUTONOMY_TARGET_HOURS} h. Nenhum envio necessário.`,
+            transitReason,
+          ]
+        : [`O estoque cobre as próximas ${AUTONOMY_TARGET_HOURS} h. Nenhum envio necessário.`];
     }
 
     const reasons: string[] = [];
@@ -331,6 +368,7 @@ export class PrescriptiveLogisticsAiUseCase {
     if (shelter.acessoViario === 'ISOLADO') {
       reasons.push('Acesso isolado: somente os modais fluvial e aéreo alcançam o abrigo.');
     }
+    if (hasTransit) reasons.push(transitReason);
 
     if (veiculo) {
       const trips = viagens === 1 ? '1 viagem' : `${viagens} viagens`;

@@ -1,0 +1,67 @@
+<section class="shelters" aria-labelledby="shelters-title">
+  <header class="shelters__header">
+    <h2 id="shelters-title">Abrigos</h2>
+    <span class="text-sm text-tertiary">{{ rows().length }} monitorados, por risco</span>
+  </header>
+
+  <div class="columns" aria-hidden="true">
+    <span>Abrigo</span>
+    <span>Ocupação</span>
+    <span>Menor autonomia</span>
+    <span class="columns__risk">Risco</span>
+  </div>
+
+  <ul class="rows">
+    @for (row of rows(); track row.id; let i = $index) {
+      <li class="fade-in-up" [style.--delay]="i">
+        <button
+          type="button"
+          class="row"
+          [class.row--selected]="row.id === selectedId()"
+          [attr.aria-label]="row.ariaLabel"
+          (click)="selectShelter.emit(row.id)"
+        >
+          <span class="row__name">
+            <span
+              class="dot"
+              [attr.data-tone]="row.statusTone"
+              [class.dot--live]="row.statusTone === 'critical'"
+            ></span>
+            <span class="row__title">
+              <span class="truncate">{{ row.nome }}</span>
+              <span class="row__place text-xs truncate">{{ row.place }}</span>
+            </span>
+          </span>
+
+          <span class="row__occupancy">
+            <span class="bar" [attr.data-tone]="row.occupancyTone">
+              <span
+                class="bar__fill"
+                [style.width.%]="row.occupancyPct > 100 ? 100 : row.occupancyPct"
+              ></span>
+            </span>
+            <span class="tabular" [attr.data-tone]="row.occupancyTone">{{
+              row.occupancyLabel
+            }}</span>
+          </span>
+
+          <span class="row__autonomy" [attr.data-tone]="row.autonomyTone">
+            <span class="tabular">{{ row.autonomy }}</span>
+            <span class="text-xs text-tertiary">{{ row.autonomyItem }}</span>
+          </span>
+
+          <span class="row__risk tabular" [attr.data-tone]="row.statusTone">{{ row.risk }}</span>
+
+          <span class="row__mobile-meta text-xs">
+            {{ row.statusMeta }} · {{ row.occupancyPct }}% ocupado · {{ row.autonomyItem }} para
+            {{ row.autonomy }}
+          </span>
+
+          <mat-icon class="row__chevron">chevron_right</mat-icon>
+        </button>
+      </li>
+    } @empty {
+      <li class="rows__empty text-sm text-tertiary">Nenhum abrigo cadastrado.</li>
+    }
+  </ul>
+</section>

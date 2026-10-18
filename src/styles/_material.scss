@@ -5,19 +5,16 @@ html {
     (
       color: (
         primary: mat.$azure-palette,
-        tertiary: mat.$green-palette,
         theme-type: color-scheme,
       ),
       typography: (
         plain-family: (
-          Inter,
-          Roboto,
+          Geist,
           system-ui,
           sans-serif,
         ),
         brand-family: (
-          Roboto,
-          Inter,
+          Geist,
           system-ui,
           sans-serif,
         ),
@@ -33,118 +30,81 @@ html {
     (
       primary: var(--color-primary),
       on-primary: var(--color-on-primary),
-      primary-container: var(--color-primary-soft),
-      on-primary-container: var(--color-primary-strong),
-      error: var(--color-danger),
-      on-error: var(--color-on-danger),
+      error: var(--color-critical),
       background: var(--color-background),
       surface: var(--color-surface),
       on-surface: var(--color-text),
       on-surface-variant: var(--color-text-secondary),
       surface-container-lowest: var(--color-surface),
       surface-container-low: var(--color-surface),
-      surface-container: var(--color-surface-variant),
-      surface-container-high: var(--color-surface-raised),
+      surface-container: var(--color-surface),
+      surface-container-high: var(--color-surface),
       surface-container-highest: var(--color-surface-variant),
       outline: var(--color-outline-strong),
       outline-variant: var(--color-outline),
-    )
-  );
-
-  @include mat.card-overrides(
-    (
-      elevated-container-shape: var(--radius-lg),
-      elevated-container-color: var(--color-surface),
-      elevated-container-elevation: var(--shadow-1),
-      outlined-container-shape: var(--radius-lg),
-      outlined-container-color: var(--color-surface),
-      outlined-outline-color: var(--color-outline),
-      filled-container-shape: var(--radius-lg),
-      filled-container-color: var(--color-surface-variant),
+      inverse-surface: var(--color-text),
+      inverse-on-surface: var(--color-background),
     )
   );
 
   @include mat.button-overrides(
     (
       filled-container-shape: var(--radius-full),
+      filled-container-color: var(--color-primary),
+      filled-label-text-color: var(--color-on-primary),
+      filled-label-text-weight: 500,
       outlined-container-shape: var(--radius-full),
-      text-container-shape: var(--radius-full),
-      tonal-container-shape: var(--radius-full),
-      protected-container-shape: var(--radius-full),
       outlined-outline-color: var(--color-outline-strong),
+      outlined-label-text-color: var(--color-text),
+      outlined-label-text-weight: 500,
+      text-container-shape: var(--radius-full),
+      text-label-text-color: var(--color-text),
+      text-label-text-weight: 500,
     )
   );
 
-  @include mat.progress-bar-overrides(
+  @include mat.icon-button-overrides(
     (
-      track-shape: var(--radius-full),
-      track-color: var(--color-surface-variant),
+      icon-color: var(--color-text-secondary),
     )
   );
 
-  @include mat.dialog-overrides(
+  @include mat.menu-overrides(
     (
-      container-shape: var(--radius-xl),
+      container-shape: var(--radius-md),
       container-color: var(--color-surface),
+      item-label-text-size: 0.875rem,
+      item-label-text-weight: 500,
+      item-icon-color: var(--color-text-secondary),
     )
   );
 
   @include mat.snack-bar-overrides(
     (
       container-shape: var(--radius-md),
-    )
-  );
-
-  @include mat.form-field-overrides(
-    (
-      outlined-container-shape: var(--radius-md),
-    )
-  );
-
-  @include mat.chips-overrides(
-    (
-      container-shape-radius: var(--radius-full),
+      container-color: var(--color-text),
+      supporting-text-color: var(--color-background),
+      button-color: var(--color-background),
     )
   );
 
   @include mat.tooltip-overrides(
     (
       container-shape: var(--radius-sm),
+      container-color: var(--color-text),
+      supporting-text-color: var(--color-background),
     )
   );
 }
 
-.mat-mdc-card.card-hover {
-  transition:
-    transform var(--duration-medium) var(--ease-emphasized),
-    box-shadow var(--duration-medium) var(--ease-emphasized);
-}
-
-.mat-mdc-progress-bar {
-  border-radius: var(--radius-full);
-  overflow: hidden;
-
-  .mdc-linear-progress__bar,
-  .mdc-linear-progress__primary-bar {
-    transition: transform var(--duration-progress) var(--ease-emphasized) !important;
-  }
-}
-
-.mat-mdc-progress-bar[data-tone] {
-  --mat-progress-bar-active-indicator-color: var(--tone);
-  --mat-progress-bar-track-color: var(--tone-soft);
-}
-
 .mat-mdc-button-base {
-  min-height: var(--touch-target);
+  height: 40px;
+  letter-spacing: -0.005em;
 }
 
-.mat-mdc-dialog-panel {
-  max-width: calc(100vw - var(--space-8)) !important;
-
-  @media (max-width: 599.98px) {
-    max-height: calc(100dvh - var(--space-8));
-  }
+.mat-mdc-menu-panel {
+  border: 1px solid var(--color-outline);
+  box-shadow: var(--shadow-pop) !important;
 }
 
 .mat-mdc-snack-bar-container {

@@ -24,7 +24,7 @@ export const VEHICLE_STATUSES: readonly VehicleStatus[] = ['DISPONÍVEL', 'EM MI
 export const TRANSPORT_MODE_ICONS: Readonly<Record<TransportMode, string>> = {
   TERRESTRE: 'local_shipping',
   FLUVIAL: 'directions_boat',
-  AÉREO: 'flight',
+  AÉREO: 'helicopter',
 };
 
 export function isAvailable(vehicle: FleetVehicle): boolean {
@@ -56,6 +56,24 @@ export function startMission(vehicle: FleetVehicle, destino: string): FleetVehic
   return { ...vehicle, status: 'EM MISSÃO', localizacaoAtual: `Em rota para ${destino}` };
 }
 
+/** Entrega feita: o veículo volta à frota onde terminou a missão. */
 export function completeMission(vehicle: FleetVehicle, localizacao: string): FleetVehicle {
+  if (vehicle.status !== 'EM MISSÃO') {
+    throw new DomainError(
+      'VEHICLE_NOT_IN_MISSION',
+      `O veículo ${vehicle.prefixo} não está em missão.`,
+    );
+  }
   return { ...vehicle, status: 'DISPONÍVEL', localizacaoAtual: localizacao };
+}
+
+/** Reparo concluído: o veículo volta à frota e parte de onde foi consertado. */
+export function releaseFromMaintenance(vehicle: FleetVehicle): FleetVehicle {
+  if (vehicle.status !== 'MANUTENÇÃO') {
+    throw new DomainError(
+      'VEHICLE_NOT_IN_MAINTENANCE',
+      `O veículo ${vehicle.prefixo} não está em manutenção.`,
+    );
+  }
+  return { ...vehicle, status: 'DISPONÍVEL' };
 }

@@ -1,0 +1,58 @@
+<header class="header">
+  <div class="header__inner container">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true"></span>
+      <span class="brand__name">S2iD <span class="brand__product">Contingência</span></span>
+    </div>
+
+    <nav class="header__actions" aria-label="Ações do painel">
+      <button
+        type="button"
+        class="sync"
+        [attr.data-tone]="offlineMode() ? 'warning' : 'positive'"
+        [attr.aria-pressed]="offlineMode()"
+        [disabled]="busy()"
+        [matTooltip]="syncHint()"
+        (click)="toggleOffline.emit()"
+      >
+        <span class="dot"></span>
+        <span class="tabular">{{ syncLabel() }}</span>
+      </button>
+
+      <button
+        matButton
+        type="button"
+        class="hide-mobile"
+        [disabled]="busy()"
+        (click)="simulateCrisis.emit()"
+      >
+        Simular pico
+      </button>
+
+      <button
+        matIconButton
+        type="button"
+        aria-label="Mais ações"
+        [matMenuTriggerFor]="menu"
+        [disabled]="busy()"
+      >
+        <mat-icon>more_horiz</mat-icon>
+      </button>
+
+      <mat-menu #menu="matMenu" xPosition="before">
+        <button mat-menu-item type="button" (click)="simulateCrisis.emit()">
+          <mat-icon>warning_amber</mat-icon>
+          <span>Simular pico de desabrigados</span>
+        </button>
+        <button mat-menu-item type="button" (click)="toggleOffline.emit()">
+          <mat-icon>{{ offlineMode() ? 'cloud_done' : 'cloud_off' }}</mat-icon>
+          <span>{{ offlineMode() ? 'Voltar a ficar online' : 'Entrar em modo offline' }}</span>
+        </button>
+        <button mat-menu-item type="button" (click)="resetData.emit()">
+          <mat-icon>restart_alt</mat-icon>
+          <span>Restaurar dados padrão</span>
+        </button>
+      </mat-menu>
+    </nav>
+  </div>
+</header>

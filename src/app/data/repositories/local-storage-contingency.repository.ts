@@ -3,10 +3,12 @@ import {
   DispatchOrder,
   DispatchOrderDraft,
   buildS2idProtocol,
+  confirmOrderDelivery,
   validateDispatchDraft,
 } from '../../domain/entities/dispatch-order.entity';
 import {
   FleetVehicle,
+  completeMission,
   startMission,
   validateVehicle,
 } from '../../domain/entities/fleet-vehicle.entity';
@@ -33,6 +35,7 @@ import {
 import { PrescriptiveLogisticsAiUseCase } from '../../domain/use-cases/prescriptive-logistics-ai.use-case';
 import {
   SEED_OFFLINE_MODE,
+  SEED_VERSION,
   createSeedFleet,
   createSeedOrders,
   createSeedShelters,
@@ -55,7 +58,11 @@ export class LocalStorageContingencyRepository extends ContingencyRepository {
 
   constructor() {
     super();
-    this.seedMissingCollections();
+    if (this.storage.read<number>(STORAGE_KEYS.SEED_VERSION) === SEED_VERSION) {
+      this.seedMissingCollections();
+    } else {
+      this.writeDefaults();
+    }
 
     const stopWatching = this.storage.watch(CONTINGENCY_KEYS, () => this.notify());
     inject(DestroyRef).onDestroy(() => {
@@ -143,9 +150,6 @@ export class LocalStorageContingencyRepository extends ContingencyRepository {
     // Tudo é calculado antes da primeira gravação: se uma regra falhar, nada muda no disco.
     const issuedAt = new Date();
     const dispatchedVehicle = startMission(vehicle, shelter.nome);
-    const suppliedShelter = this.ai.assess(
-      receiveSupplies(toOperational(shelter), draft.itensDespachados, issuedAt.toISOString()),
-    );
 
     const order: DispatchOrder = {
       id: createId(),
@@ -158,13 +162,41 @@ export class LocalStorageContingencyRepository extends ContingencyRepository {
       tempoDecisaoMinutos: draft.tempoDecisaoMinutos,
       origem: draft.origem,
       sincronizadoNuvem: !this.isOfflineMode(),
+      entregueEm: null,
     };
 
     this.storage.write(STORAGE_KEYS.ORDERS, [order, ...orders]);
-    this.writeShelters(replaceById(shelters, suppliedShelter));
     this.storage.write(STORAGE_KEYS.FLEET, replaceById(fleet, dispatchedVehicle));
     this.notify();
     return order;
+  }
+
+  confirmDelivery(orderId: string): DispatchOrder {
+    const orders = this.readOrders();
+    const shelters = this.readShelters();
+    const fleet = this.readFleet();
+
+    const order = orders.find((item) => item.id === orderId);
+    if (!order) throw new DomainError('ORDER_NOT_FOUND', 'Ordem de despacho não encontrada.');
+    const shelter = this.requireShelter(shelters, order.abrigoId);
+
+    const at = this.now();
+    const delivered = confirmOrderDelivery(order, at);
+    const suppliedShelter = this.ai.assess(
+      receiveSupplies(toOperational(shelter), order.itensDespachados, at),
+    );
+    // O veículo pode ter sido editado à parte; só volta à frota se ainda estiver nesta missão.
+    const vehicle = fleet.find((item) => item.prefixo === order.veiculoPrefixo);
+    const returnedFleet =
+      vehicle?.status === 'EM MISSÃO'
+        ? replaceById(fleet, completeMission(vehicle, `${shelter.municipio}/${shelter.uf}`))
+        : fleet;
+
+    this.storage.write(STORAGE_KEYS.ORDERS, replaceById(orders, delivered));
+    this.writeShelters(replaceById(shelters, suppliedShelter));
+    this.storage.write(STORAGE_KEYS.FLEET, returnedFleet);
+    this.notify();
+    return delivered;
   }
 
   getSyncQueue(): DispatchOrder[] {
@@ -230,18 +262,24 @@ export class LocalStorageContingencyRepository extends ContingencyRepository {
   }
 
   resetToDefaults(): void {
-    const now = new Date();
-    this.writeShelters(this.seedShelters(now));
-    this.storage.write(STORAGE_KEYS.FLEET, createSeedFleet());
-    this.storage.write(STORAGE_KEYS.ORDERS, createSeedOrders(now));
-    this.storage.write(STORAGE_KEYS.OFFLINE_MODE, SEED_OFFLINE_MODE);
-    this.storage.write(STORAGE_KEYS.SIMULATION, { ...INITIAL_SIMULATION_STATE });
+    this.writeDefaults();
     this.notify();
   }
 
   subscribe(listener: ContingencyChangeListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  /** Primeiro acesso ou dados de um seed antigo: tudo volta ao seed atual. */
+  private writeDefaults(): void {
+    const now = new Date();
+    this.writeShelters(this.seedShelters(now));
+    this.storage.write(STORAGE_KEYS.FLEET, createSeedFleet());
+    this.storage.write(STORAGE_KEYS.ORDERS, createSeedOrders(now));
+    this.storage.write(STORAGE_KEYS.OFFLINE_MODE, SEED_OFFLINE_MODE);
+    this.storage.write(STORAGE_KEYS.SIMULATION, { ...INITIAL_SIMULATION_STATE });
+    this.storage.write(STORAGE_KEYS.SEED_VERSION, SEED_VERSION);
   }
 
   private seedMissingCollections(): void {
